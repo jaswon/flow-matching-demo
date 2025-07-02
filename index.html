@@ -162,7 +162,7 @@ function make_data(n_samples) {
 // --- Plotting ---
 const canvas = document.getElementById('plot');
 const ctx = canvas.getContext('2d');
-const TRUE_COLOR = 'rgba(0,0,255,.2)';
+const TRUE_COLOR = 'rgba(0,0,255,.1)';
 const PRED_COLOR = 'red';
 function plot_points(points, color, radius = 2) {
   for (const [x, y] of points) {
@@ -260,7 +260,7 @@ const model = (() => {
             tf.layers.dense({units:hDim}).apply(r),
             tf.layers.dense({units:hDim, activation:'gelu'}).apply(r),
         ])
-        r = tf.layers.dropout({rate:.2}).apply(r);
+        r = tf.layers.dropout({rate:.3}).apply(r);
         r = tf.layers.dense({units:hDim}).apply(r);
         const alpha = tf.layers.dense({units:hDim}).apply(tEmb);
         r = tf.layers.multiply().apply([r, alpha]);
@@ -417,8 +417,8 @@ async function train_loop() {
 
 // --- Reverse Process Sampling ---
 let sample_trajs = [];
-const NUM_SAMPLES = 256;
-const REVERSE_STEPS = 64;
+const NUM_SAMPLES = 512;
+const REVERSE_STEPS = 32;
 const dt = 1.0 / REVERSE_STEPS;
 
 async function generate_samples() {
@@ -454,7 +454,7 @@ function update_reverse_plot() {
   sliderLabel.textContent = `Reverse Step: ${n_steps}/${REVERSE_STEPS}`;
   if (sample_trajs.length === 0) return;
   for (let traj of sample_trajs) {
-    plot_points([traj[Math.min(n_steps, traj.length-1)]], PRED_COLOR, 5);
+    plot_points([traj[Math.min(n_steps, traj.length-1)]], PRED_COLOR, 4);
   }
 }
 
