@@ -57,10 +57,43 @@
       cursor: pointer;
       box-shadow: 0 2px 8px rgba(60,60,120,0.07);
       transition: background 0.2s, box-shadow 0.2s;
+      position: relative;
+      min-width: 140px;
     }
     #toggleTrainBtn:hover {
       background: linear-gradient(90deg, #4f46e5 60%, #2563eb 100%);
       box-shadow: 0 4px 16px rgba(60,60,120,0.12);
+    }
+    #toggleTrainBtn:disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top: 3px solid #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+    }
+    @keyframes spin {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    .loading .spinner {
+      display: block !important;
+    }
+    .loading {
+      color: transparent !important;
+    }
+    #toggleTrainBtn.loading:disabled {
+      opacity: 1;
     }
     #plot, #lossPlot {
       display: block;
@@ -98,7 +131,10 @@
   <div id="container">
     <h2>Flow Matching Demo</h2>
     <div id="controls">
-      <button id="toggleTrainBtn">Start Training</button>
+      <button id="toggleTrainBtn">
+        <span class="spinner"></span>
+        <span class="btn-label">Start Training</span>
+      </button>
     </div>
     <canvas id="plot" width="450" height="450"></canvas>
     <!-- The loss plot canvas will be appended here by JS -->
@@ -368,27 +404,28 @@ const NUM_SAMPLES = 256;
 const REVERSE_STEPS = 64;
 const dt = 1.0 / REVERSE_STEPS;
 
-function generate_samples() {
-    // Start from noise for multiple samples and precompute all trajectories
+async function generate_samples() {
     sample_trajs = [];
-    tf.tidy(() => {
-        let xt = make_batch(NUM_SAMPLES);
-        let trajs = [xt.arraySync()];
-        tf.linspace(1, 0, REVERSE_STEPS).arraySync().forEach(t => {
-            const t_col = tf.fill([NUM_SAMPLES, 1], t);
-            const {newXt, arr} = tf.tidy(() => {
-                const vt = model.predict([xt, t_col]);
-                const newXt = tf.sub(xt, vt.mul(dt));
-                const arr = newXt.arraySync();
-                return {newXt, arr};
-            });
-            xt.dispose(); // Dispose the previous tensor
-            xt = newXt;   // Update xt to the new tensor
-            trajs.push(arr);
-        })
-        // Convert trajs: [step][sample][2] -> [sample][step][2]
-        sample_trajs = trajs[0].map((_, i) => trajs.map(step => step[i]));
-    })
+    let xt = make_batch(NUM_SAMPLES);
+    let trajs = [xt.arraySync()];
+    const timeSteps = tf.linspace(1, 0, REVERSE_STEPS).arraySync();
+    for (let i = 0; i < timeSteps.length; i++) {
+        const t = timeSteps[i];
+        const t_col = tf.fill([NUM_SAMPLES, 1], t);
+        const {newXt, arr} = tf.tidy(() => {
+            const vt = model.predict([xt, t_col]);
+            const newXt = tf.sub(xt, vt.mul(dt));
+            const arr = newXt.arraySync();
+            return {newXt, arr};
+        });
+        xt.dispose();
+        xt = newXt;
+        trajs.push(arr);
+        t_col.dispose();
+        // Allow UI to update every few steps
+        if (i % 8 === 0) await new Promise(r => setTimeout(r, 0));
+    }
+    sample_trajs = trajs[0].map((_, i) => trajs.map(step => step[i]));
     stepSlider.value = 0;
     update_reverse_plot();
 }
@@ -406,33 +443,42 @@ function update_reverse_plot() {
 
 // --- UI Wiring ---
 const toggleBtn = document.getElementById('toggleTrainBtn');
+
 function updateToggleBtn() {
+  const label = toggleBtn.querySelector('.btn-label');
+  if (!label) return;
   if (isTraining) {
-    toggleBtn.textContent = 'Pause';
+    label.textContent = 'Pause';
   } else if (batch_idx > 0) {
-    toggleBtn.textContent = 'Resume Training';
+    label.textContent = 'Resume Training';
   } else {
-    toggleBtn.textContent = 'Start Training';
+    label.textContent = 'Start Training';
   }
 }
-toggleBtn.onclick = () => {
-  if (!isTraining) {
-    isTraining = true;
-    // Disable and reset slider during training
-    stepSlider.disabled = true;
-    stepSlider.value = 0;
-    sliderLabel.textContent = `Reverse Step: 0/${REVERSE_STEPS}`;
-    clear_plot();
-    plot_points(X, TRUE_COLOR, 2);
-    train_loop();
-  } else {
-    isTraining = false;
-    // Re-enable slider and generate samples when training stops
-    stepSlider.disabled = false;
-    generate_samples();
-  }
-  updateToggleBtn();
-};
+
+toggleBtn.addEventListener('click', async (e) => {
+    if (toggleBtn.disabled) return;
+    if (!isTraining) {
+        isTraining = true;
+        // Disable and reset slider during training
+        stepSlider.disabled = true;
+        stepSlider.value = 0;
+        sliderLabel.textContent = `Reverse Step: 0/${REVERSE_STEPS}`;
+        clear_plot();
+        plot_points(X, TRUE_COLOR, 2);
+        train_loop();
+    } else {
+        isTraining = false;
+        // Show loading spinner and disable button during sample generation
+        toggleBtn.disabled = true;
+        toggleBtn.classList.add('loading');
+        await generate_samples();
+        toggleBtn.classList.remove('loading');
+        toggleBtn.disabled = false;
+        stepSlider.disabled = false;
+    }
+    updateToggleBtn();
+});
 
 window.addEventListener('DOMContentLoaded', () => {
   const controlsDiv = document.getElementById('controls');
