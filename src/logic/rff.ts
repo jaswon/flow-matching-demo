@@ -4,6 +4,7 @@ export class RandomFourierFeatureEmbedding extends tf.layers.Layer {
     static className = 'RandomFourierFeatureEmbedding';
     dim: number;
     sigma: number;
+    // @ts-ignore
     built: boolean;
     frequencies: any;
     phases: any;
