@@ -1,0 +1,120 @@
+html {
+    min-height: 100%;
+}
+body {
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  background: linear-gradient(120deg, #f8f8f8 60%, #e0e7ff 100%);
+  margin: 0;
+  padding: 32px;
+}
+#container {
+  max-width: 700px;
+  margin: 0 auto 0 auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(60,60,120,0.08);
+  padding: 32px 32px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+h2 {
+  margin-top: 0;
+  font-size: 2.1em;
+  letter-spacing: 0.01em;
+  color: #2a2a4a;
+  text-align: center;
+}
+#controls {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  justify-content: center;
+  width: 100%;
+}
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#toggleTrainBtn {
+  background: linear-gradient(90deg, #6366f1 60%, #60a5fa 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 28px;
+  font-size: 1.1em;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(60,60,120,0.07);
+  transition: background 0.2s, box-shadow 0.2s;
+  position: relative;
+  min-width: 140px;
+}
+#toggleTrainBtn:hover {
+  background: linear-gradient(90deg, #4f46e5 60%, #2563eb 100%);
+  box-shadow: 0 4px 16px rgba(60,60,120,0.12);
+}
+#toggleTrainBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.spinner {
+  display: none;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-top: 3px solid #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+.loading .spinner {
+  display: block !important;
+}
+.loading {
+  color: transparent !important;
+}
+#toggleTrainBtn.loading:disabled {
+  opacity: 1;
+}
+#plot, #lossPlot {
+  display: block;
+  margin: 0 auto 18px auto;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(60,60,120,0.07);
+}
+#lossPlot {
+  margin-bottom: 0;
+}
+#stepSlider {
+  accent-color: #6366f1;
+  width: 360px;
+  height: 18px;
+  margin-left: 10px;
+}
+#sliderLabel {
+  font-size: 1em;
+  color: #444;
+  margin-right: 0;
+}
+@media (max-width: 800px) {
+  #container {
+    max-width: 98vw;
+    padding: 10px 2vw 10px 2vw;
+  }
+  #plot, #lossPlot {
+    width: 98vw !important;
+    max-width: 98vw;
+  }
+}
