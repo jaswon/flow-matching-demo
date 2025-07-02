@@ -250,33 +250,20 @@ const model = (() => {
     const xt = tf.input({shape: [2]});
     const t = tf.input({shape: [1]});
     
-    let tEmb = new RandomFourierFeatureEmbedding(32, 1.0).apply(t);
-    tEmb = tf.layers.dense({units: 128, activation:'gelu'}).apply(tEmb);
-    let x = tf.layers.dense({units: hDim}).apply(xt);
+    let tEmb = new RandomFourierFeatureEmbedding(64, 1.0).apply(t);
+    tEmb = tf.layers.dense({units:256, activation:'gelu'}).apply(tEmb);
+    let x = tf.layers.dense({units:hDim}).apply(xt);
     
     for (let i = 0; i < 6; i++) {
-        let r = tf.layers.layerNormalization({
-            betaInitializer: 'zeros',
-            gammaInitializer: 'ones',
-            trainable: false,
-        }).apply(x); // norm
-        r = tf.layers.multiply().apply([r, tf.layers.dense({
-            units: hDim,
-            kernelInitializer: 'zeros',
-            biasInitializer: 'ones',
-        }).apply(tEmb)]); // scale
-        r = tf.layers.add().apply([r, tf.layers.dense({
-            units: hDim,
-            kernelInitializer: 'zeros',
-            biasInitializer: 'zeros',
-        }).apply(tEmb)]); // shift
-        r = tf.layers.dense({units: hDim, activation:'gelu'}).apply(r);
-        r = tf.layers.dense({units: hDim}).apply(r);
-        r = tf.layers.multiply().apply([r, tf.layers.dense({
-            units: hDim,
-            kernelInitializer: 'zeros',
-            biasInitializer: 'zeros',
-        }).apply(tEmb)]); // alpha
+        let r = tf.layers.layerNormalization().apply(x);
+        r = tf.layers.multiply().apply([
+            tf.layers.dense({units:hDim}).apply(r),
+            tf.layers.dense({units:hDim, activation:'gelu'}).apply(r),
+        ])
+        r = tf.layers.dropout({rate:.2}).apply(r);
+        r = tf.layers.dense({units:hDim}).apply(r);
+        const alpha = tf.layers.dense({units:hDim}).apply(tEmb);
+        r = tf.layers.multiply().apply([r, alpha]);
         x = tf.layers.add().apply([x,r]);
     }
     const output = tf.layers.dense({units: 2}).apply(x);
