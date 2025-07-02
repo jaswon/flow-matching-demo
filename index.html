@@ -16,6 +16,10 @@
           <span class="spinner"></span>
           <span class="btn-label">Start Training</span>
         </button>
+        <div class="slider-container">
+          <label for="stepSlider" id="sliderLabel">Reverse Step: 0/32</label>
+          <input type="range" id="stepSlider" min="0" max="32" value="0" />
+        </div>
       </div>
       <canvas id="plot" width="450" height="450"></canvas>
       <canvas id="lossPlot" width="500" height="200" style="background:#fff; border:1px solid #ccc; display:block; margin-top:16px;"></canvas>
