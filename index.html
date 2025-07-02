@@ -183,13 +183,41 @@ function to_canvas(x, y) {
   ];
 }
 
-// --- Sinusoidal Embedding Layer ---
-class SinusoidalEmbedding extends tf.layers.Layer {
-    static className = 'SinusoidalEmbedding';
+// --- Random Fourier Feature Embedding Layer ---
+class RandomFourierFeatureEmbedding extends tf.layers.Layer {
+    static className = 'RandomFourierFeatureEmbedding';
     
-    constructor(dim, config = {}) {
+    constructor(dim, sigma = 1.0, config = {}) {
         super(config);
         this.dim = dim;
+        this.sigma = sigma;
+        this.built = false;
+    }
+
+    build(inputShape) {
+        const halfDim = Math.floor(this.dim / 2);
+        
+        // Random frequencies from normal distribution
+        this.frequencies = this.addWeight(
+            'frequencies',
+            [inputShape[1], halfDim],
+            'float32',
+            tf.initializers.randomNormal({stddev: 1.0 / this.sigma}),
+            null,
+            false,
+        );
+        
+        // Random phases from uniform distribution [0, 2π]
+        this.phases = this.addWeight(
+            'phases',
+            [halfDim],
+            'float32',
+            tf.initializers.randomUniform({minval: 0, maxval: 2 * Math.PI}),
+            null,
+            false,
+        );
+        
+        this.built = true;
     }
 
     computeOutputShape(inputShape) {
@@ -198,21 +226,22 @@ class SinusoidalEmbedding extends tf.layers.Layer {
     
     call(inputs) {
         return tf.tidy(() => {
-            const freqs = tf.mul(3.1416*2,tf.range(0,this.dim/2)); // [dim/2]
-            const thetas = tf.mul(inputs[0], tf.expandDims(freqs, 0)); // [batch, dim/2]
-            return tf.concat([tf.sin(thetas), tf.cos(thetas)], -1); // [batch, dim]
+            const projected = tf.matMul(inputs[0], this.frequencies.read());
+            const shifted = tf.add(projected, tf.expandDims(this.phases.read(), 0));
+            return tf.concat([tf.cos(shifted), tf.sin(shifted)], -1); // [batch, dim]
         });
     }
     
     getConfig() {
         const config = super.getConfig();
         config.dim = this.dim;
+        config.sigma = this.sigma;
         return config;
     }
 }
 
 // Register the custom layer
-tf.serialization.registerClass(SinusoidalEmbedding);
+tf.serialization.registerClass(RandomFourierFeatureEmbedding);
 
 // --- Model ---
 const optimizer = tf.train.adam(0.0001);
@@ -221,7 +250,8 @@ const model = (() => {
     const xt = tf.input({shape: [2]});
     const t = tf.input({shape: [1]});
     
-    const tEmb = new SinusoidalEmbedding(32).apply(t);
+    let tEmb = new RandomFourierFeatureEmbedding(32, 1.0).apply(t);
+    tEmb = tf.layers.dense({units: 128, activation:'gelu'}).apply(tEmb);
     let x = tf.layers.dense({units: hDim}).apply(xt);
     
     for (let i = 0; i < 6; i++) {
