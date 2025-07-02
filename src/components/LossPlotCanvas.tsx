@@ -1,17 +1,19 @@
-import { loss_history, batch_idx } from './train.js';
+import React, { useRef, useEffect } from 'react';
 
-const lossCanvas = document.getElementById('lossPlot');
-const lossCtx = lossCanvas.getContext('2d');
-
-export function plot_loss() {
-  lossCtx.clearRect(0, 0, lossCanvas.width, lossCanvas.height);
+export function plot_loss(
+  ctx: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  loss_history: number[],
+  batch_idx: number
+) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   // Draw axes
-  lossCtx.strokeStyle = '#aaa';
-  lossCtx.beginPath();
-  lossCtx.moveTo(40, 10);
-  lossCtx.lineTo(40, 180);
-  lossCtx.lineTo(490, 180);
-  lossCtx.stroke();
+  ctx.strokeStyle = '#aaa';
+  ctx.beginPath();
+  ctx.moveTo(40, 10);
+  ctx.lineTo(40, 180);
+  ctx.lineTo(490, 180);
+  ctx.stroke();
   if (loss_history.length < 2) return;
   let minEpoch = 1;
   let maxEpoch = loss_history.length;
@@ -20,7 +22,7 @@ export function plot_loss() {
   const numBins = 100;
   const logMinEpoch = Math.log10(minEpoch);
   const logMaxEpoch = Math.log10(maxEpoch);
-  let bins = Array.from({length: numBins}, () => []);
+  let bins: {epoch: number, loss: number}[][] = Array.from({length: numBins}, () => []);
   for (let i = 0; i < loss_history.length; ++i) {
     let lossVal = loss_history[i];
     if (lossVal <= 0) continue;
@@ -31,7 +33,7 @@ export function plot_loss() {
     bins[binIdx].push({epoch: i + 1, loss: lossVal});
   }
   // Compute median per bin
-  let binPoints = [];
+  let binPoints: {epoch: number, loss: number}[] = [];
   for (let b = 0; b < numBins; ++b) {
     if (bins[b].length === 0) continue;
     let epochs = bins[b].map(v => v.epoch);
@@ -58,8 +60,8 @@ export function plot_loss() {
   if (minLoss === maxLoss) maxLoss += 1e-6;
 
   // Plot loss curve (log-log)
-  lossCtx.strokeStyle = 'red';
-  lossCtx.beginPath();
+  ctx.strokeStyle = 'red';
+  ctx.beginPath();
   for (let i = 0; i < binPoints.length; ++i) {
     let {epoch, loss} = binPoints[i];
     let logEpoch = Math.log10(epoch);
@@ -68,15 +70,37 @@ export function plot_loss() {
     let logMinLoss = Math.log10(minLoss);
     let logMaxLoss = Math.log10(maxLoss);
     let y = 180 - 160 * (logLoss - logMinLoss) / (logMaxLoss - logMinLoss);
-    if (i === 0) lossCtx.moveTo(x, y);
-    else lossCtx.lineTo(x, y);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
   }
-  lossCtx.stroke();
+  ctx.stroke();
   // Draw min/max labels (log scale)
-  lossCtx.fillStyle = '#333';
-  lossCtx.font = '12px sans-serif';
-  lossCtx.fillText(maxLoss.toExponential(2), 5, 20);
-  lossCtx.fillText(minLoss.toExponential(2), 5, 180);
-  lossCtx.fillText('Loss (log-log)', 350, 20);
-  lossCtx.fillText(`Batch (current: ${batch_idx})`, 350, 195);
+  ctx.fillStyle = '#333';
+  ctx.font = '12px sans-serif';
+  ctx.fillText(maxLoss.toExponential(2), 5, 20);
+  ctx.fillText(minLoss.toExponential(2), 5, 180);
+  ctx.fillText('Loss (log-log)', 350, 20);
+  ctx.fillText(`Batch (current: ${batch_idx})`, 350, 195);
 } 
+
+interface LossPlotCanvasProps {
+  lossHistory: number[];
+  batchIdx: number;
+}
+
+const LossPlotCanvas: React.FC<LossPlotCanvasProps> = ({ lossHistory, batchIdx }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    plot_loss(ctx, canvas, lossHistory, batchIdx);
+  }, [lossHistory, batchIdx]);
+
+  return <canvas ref={canvasRef} width={500} height={200} />;
+};
+
+export default LossPlotCanvas; 

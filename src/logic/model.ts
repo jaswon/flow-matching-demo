@@ -1,5 +1,6 @@
 // Model and custom layer
 
+import * as tf from '@tensorflow/tfjs';
 import { RandomFourierFeatureEmbedding } from './rff.js';
 
 const optimizer = tf.train.adam(0.0001);

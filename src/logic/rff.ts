@@ -1,20 +1,26 @@
+import * as tf from '@tensorflow/tfjs';
 
 export class RandomFourierFeatureEmbedding extends tf.layers.Layer {
     static className = 'RandomFourierFeatureEmbedding';
-    constructor(dim, sigma = 1.0, config = {}) {
+    dim: number;
+    sigma: number;
+    built: boolean;
+    frequencies: any;
+    phases: any;
+    constructor(dim: number, sigma: number = 1.0, config: any = {}) {
         super(config);
         this.dim = dim;
         this.sigma = sigma;
         this.built = false;
     }
-    build(inputShape) {
+    build(inputShape: any) {
         const halfDim = Math.floor(this.dim / 2);
         this.frequencies = this.addWeight(
             'frequencies',
             [inputShape[1], halfDim],
             'float32',
             tf.initializers.randomNormal({stddev: 1.0 / this.sigma}),
-            null,
+            undefined,
             false,
         );
         this.phases = this.addWeight(
@@ -22,15 +28,15 @@ export class RandomFourierFeatureEmbedding extends tf.layers.Layer {
             [halfDim],
             'float32',
             tf.initializers.randomUniform({minval: 0, maxval: 2 * Math.PI}),
-            null,
+            undefined,
             false,
         );
         this.built = true;
     }
-    computeOutputShape(inputShape) {
+    computeOutputShape(inputShape: any) {
         return [inputShape[0], this.dim];
     }
-    call(inputs) {
+    call(inputs: any) {
         return tf.tidy(() => {
             const projected = tf.matMul(inputs[0], this.frequencies.read());
             const shifted = tf.add(projected, tf.expandDims(this.phases.read(), 0));

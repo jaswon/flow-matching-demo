@@ -5,25 +5,9 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Flow Matching Demo</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
-    <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <div id="container">
-      <h2>Flow Matching Demo</h2>
-      <div id="controls">
-        <button id="toggleTrainBtn">
-          <span class="spinner"></span>
-          <span class="btn-label">Start Training</span>
-        </button>
-        <div class="slider-container">
-          <label for="stepSlider" id="sliderLabel">Reverse Step: 0/32</label>
-          <input type="range" id="stepSlider" min="0" max="32" value="0" />
-        </div>
-      </div>
-      <canvas id="plot" width="450" height="450"></canvas>
-      <canvas id="lossPlot" width="500" height="200" style="background:#fff; border:1px solid #ccc; display:block; margin-top:16px;"></canvas>
-    </div>
-    <script type="module" src="/src/main.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
