@@ -139,15 +139,7 @@ function make_batch(batch_size) {
 let isTraining = false, batch_idx = 0, loss = 0;
 const X = make_data(1024);
 
-// Add a second canvas for the loss plot
-const lossCanvas = document.createElement('canvas');
-lossCanvas.id = 'lossPlot';
-lossCanvas.width = 500;
-lossCanvas.height = 200;
-lossCanvas.style.background = '#fff';
-lossCanvas.style.border = '1px solid #ccc';
-lossCanvas.style.display = 'block';
-lossCanvas.style.marginTop = '16px';
+const lossCanvas = document.getElementById('lossPlot');
 const lossCtx = lossCanvas.getContext('2d');
 
 // Store loss history
@@ -375,8 +367,6 @@ window.addEventListener('DOMContentLoaded', () => {
   stepSlider.oninput = update_reverse_plot;
   generate_samples(); // Compute samples on document load
   updateToggleBtn(); // Set initial button text
-  // Append lossCanvas to container here only
-  document.getElementById('container').appendChild(lossCanvas);
 });
 
 // --- Initial Plot ---
